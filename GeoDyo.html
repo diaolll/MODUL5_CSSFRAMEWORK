@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GeoDyo — World Countries Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:    #0a0a0a;
+      --surface:  #111111;
+      --card:     #161616;
+      --border:   #272727;
+      --border2:  #333333;
+      --lime:     #c8f23a;
+      --lime-dim: rgba(200,242,58,0.12);
+      --red:      #ff4d4d;
+      --text:     #f0f0f0;
+      --muted:    #6a6a6a;
+      --muted2:   #999999;
+      --radius:   6px;
+      --radius-lg:12px;
+    }
+
+    body {
+      font-family: 'Manrope', sans-serif;
+      background: var(--black);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* NAVBAR */
+    .navbar {
+      position: sticky;
+      top: 0; z-index: 100;
+      background: rgba(10,10,10,0.88);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-family: 'Syne', sans-serif; font-weight: 800; display: flex; align-items: center; gap: 0.6rem; }
+    .nav-dot { width: 7px; height: 7px; background: var(--lime); border-radius: 50%; animation: blink 2s infinite; }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+    .nav-badge { font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; border: 1px solid var(--border2); padding: 0.2rem 0.6rem; border-radius: 4px; color: var(--muted2); }
+
+    /* HERO */
+    .hero { padding: 5rem 2rem 3.5rem; max-width: 1280px; margin: 0 auto; position: relative; }
+    .hero-ghost { position: absolute; right: -1rem; top: 2rem; font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(90px, 16vw, 200px); color: rgba(255,255,255,0.02); pointer-events: none; }
+    .hero h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(3rem, 8vw, 6rem); line-height: 0.93; margin-bottom: 1.6rem; }
+    .hero h1 .accent { color: var(--lime); }
+    .hero-stats { display: flex; flex-wrap: wrap; gap: 2.5rem; }
+    .hstat { border-left: 2px solid var(--border2); padding-left: 1rem; }
+    .hstat-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2rem; }
+    .hstat-num.lime { color: var(--lime); }
+    .hstat-lbl { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--muted); margin-top: 0.25rem; }
+
+    /* CONTROLS */
+    .controls { max-width: 1280px; margin: 0 auto; padding: 1.8rem 2rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .search-wrap { position: relative; flex: 1; min-width: 250px; }
+    .search-wrap input { width: 100%; background: var(--surface); border: 1px solid var(--border); color: #fff; padding: 0.75rem 1rem; border-radius: var(--radius); outline: none; }
+    .search-wrap input:focus { border-color: var(--lime); }
+    select.ctrl { background: var(--surface); border: 1px solid var(--border); color: #fff; padding: 0.75rem; border-radius: var(--radius); cursor: pointer; }
+
+    /* GRID & CARD */
+    #grid { 
+        max-width: 1280px; margin: 0 auto; padding: 0 2rem 6rem; 
+        display: none; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+        gap: 1px; background: var(--border); border: 1px solid var(--border); 
+        border-radius: var(--radius-lg); overflow: hidden; 
+    }
+    .ccard { background: var(--card); cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; animation: cardIn 0.4s ease both; }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .ccard:hover { background: var(--surface); }
+    .ccard-flag { width: 100%; height: 160px; object-fit: cover; }
+    .ccard-body { padding: 1.2rem; flex: 1; }
+    .ccard-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; }
+    .ccard-region { font-size: 0.65rem; color: var(--lime); background: var(--lime-dim); padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+
+    /* MODAL */
+    #m-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 200; padding: 1rem; }
+    #m-overlay.open { display: flex; }
+    #m-box { background: var(--card); border: 1px solid var(--border2); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-radius: var(--radius-lg); position: relative; }
+    .m-close-btn { position: absolute; top: 1rem; right: 1rem; background: var(--surface); border: none; color: #fff; cursor: pointer; padding: 0.5rem; border-radius: 50%; }
+
+    /* LOADER & ERROR */
+    #loader { padding: 5rem; text-align: center; }
+    .spin { width: 40px; height: 40px; border: 3px solid var(--border2); border-top-color: var(--lime); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #err-state { display: none; text-align: center; padding: 5rem; color: var(--red); }
+    
+    .results-row { max-width: 1280px; margin: 0 auto; padding: 0 2rem 1rem; display: none; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--muted); }
+    .hl { color: var(--lime); }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .chip { background: var(--surface); border: 1px solid var(--border2); padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; }
+    .chip-lime { border-color: var(--lime); color: var(--lime); cursor: pointer; }
+    .chip-lime:hover { background: var(--lime); color: #000; }
+
+    .m-body { padding: 1.5rem; }
+    .m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .mfl { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; }
+    .mfv { font-size: 0.9rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-logo"><span class="nav-dot"></span> GeoDyo</div>
+  <div class="nav-badge">GET <em>restcountries.com</em></div>
+</nav>
+
+<section class="hero">
+  <div class="hero-ghost" id="heroGhost">250</div>
+  <h1>Explore<br><span class="accent">The World.</span></h1>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-num lime" id="sTotal">0</div><div class="hstat-lbl">NEGARA</div></div>
+    <div class="hstat"><div class="hstat-num" id="sPop">0</div><div class="hstat-lbl">POPULASI</div></div>
+    <div class="hstat"><div class="hstat-num" id="sRegions">0</div><div class="hstat-lbl">REGION</div></div>
+  </div>
+</section>
+
+<div class="controls">
+  <div class="search-wrap"><input type="text" id="searchInput" placeholder="Cari nama negara atau ibu kota..."/></div>
+  <select class="ctrl" id="regionSel">
+    <option value="">Semua Region</option>
+    <option value="Africa">Africa</option>
+    <option value="Americas">Americas</option>
+    <option value="Asia">Asia</option>
+    <option value="Europe">Europe</option>
+    <option value="Oceania">Oceania</option>
+  </select>
+  <select class="ctrl" id="sortSel">
+    <option value="name">Nama A-Z</option>
+    <option value="pop-desc">Populasi Terbesar</option>
+    <option value="area-desc">Wilayah Terluas</option>
+  </select>
+  <button class="ctrl" onclick="location.reload()" style="background:none; border: 1px solid var(--border2); color: var(--muted2)">Reset</button>
+</div>
+
+<div class="results-row" id="resultsRow">
+  Showing <span class="hl" id="rCount">0</span> of <span class="hl" id="rTotal">0</span> countries
+</div>
+
+<div id="loader"><div class="spin"></div><p>LOADING DATA...</p></div>
+<div id="err-state"><h2>ERROR</h2><p id="errMsg"></p></div>
+<div id="grid"></div>
+
+<div id="m-overlay">
+  <div id="m-box">
+    <button class="m-close-btn" id="m-close">✕</button>
+    <img id="m-flag" style="width:100%; height:250px; object-fit:cover;" />
+    <div class="m-body">
+      <h2 id="m-name" style="font-family:'Syne'; font-size:2rem;"></h2>
+      <p id="m-native" style="color:var(--muted); margin-bottom:1rem;"></p>
+      <div class="m-grid">
+        <div class="m-field"><div class="mfl">Capital</div><div class="mfv" id="m-cap"></div></div>
+        <div class="m-field"><div class="mfl">Region</div><div class="mfv" id="m-reg"></div></div>
+        <div class="m-field"><div class="mfl">Population</div><div class="mfv lime" id="m-pop"></div></div>
+        <div class="m-field"><div class="mfl">Area</div><div class="mfv lime" id="m-area"></div></div>
+      </div>
+      <div class="mfl">Languages</div><div class="chip-row" id="m-langs"></div>
+      <div id="m-bord-sec" style="margin-top:1rem;">
+        <div class="mfl">Borders</div><div class="chip-row" id="m-bords"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+class CountryAPI {
+  static async fetchAll() {
+    const res = await fetch('https://restcountries.com/v3.1/all?fields=name,flags,capital,region,subregion,population,area,cca3,languages,borders');
+    if (!res.ok) throw new Error('Gagal mengambil data dari server.');
+    return await res.json();
+  }
+}
+
+class CountryFormatter {
+  static num(n) { return n?.toLocaleString('id-ID') || '0'; }
+  static abbr(n) {
+    if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+    if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+    return this.num(n);
+  }
+}
+
+class CountryCard {
+  constructor(country, onClick) {
+    this.country = country;
+    this.onClick = onClick;
+  }
+  build(index) {
+    const el = document.createElement('div');
+    el.className = 'ccard';
+    el.style.animationDelay = `${Math.min(index * 0.02, 1)}s`;
+    el.innerHTML = `
+      <img class="ccard-flag" src="${this.country.flags.svg}" alt="Flag" loading="lazy">
+      <div class="ccard-body">
+        <div class="ccard-name">${this.country.name.common}</div>
+        <span class="ccard-region">${this.country.region}</span>
+      </div>
+    `;
+    el.onclick = () => this.onClick(this.country);
+    return el;
+  }
+}
+
+class FilterManager {
+  constructor() { this.query = ''; this.region = ''; this.sort = 'name'; }
+  apply(list) {
+    let res = list.filter(c => 
+      c.name.common.toLowerCase().includes(this.query) &&
+      (this.region === '' || c.region === this.region)
+    );
+    if (this.sort === 'pop-desc') res.sort((a,b) => b.population - a.population);
+    else if (this.sort === 'area-desc') res.sort((a,b) => b.area - a.area);
+    else res.sort((a,b) => a.name.common.localeCompare(b.name.common));
+    return res;
+  }
+}
+
+class CountryModal {
+  constructor() {
+    this.overlay = document.getElementById('m-overlay');
+    document.getElementById('m-close').onclick = () => this.close();
+    this.overlay.onclick = (e) => { if(e.target === this.overlay) this.close(); };
+  }
+  open(c, allData) {
+    document.getElementById('m-flag').src = c.flags.svg;
+    document.getElementById('m-name').textContent = c.name.common;
+    document.getElementById('m-cap').textContent = c.capital?.[0] || '—';
+    document.getElementById('m-reg').textContent = c.region;
+    document.getElementById('m-pop').textContent = CountryFormatter.num(c.population);
+    document.getElementById('m-area').textContent = CountryFormatter.num(c.area) + ' km²';
+    
+    const langRow = document.getElementById('m-langs');
+    langRow.innerHTML = '';
+    Object.values(c.languages || {}).forEach(l => {
+        const span = document.createElement('span'); span.className = 'chip'; span.textContent = l;
+        langRow.appendChild(span);
+    });
+
+    const bordSec = document.getElementById('m-bord-sec');
+    const bordRow = document.getElementById('m-bords');
+    bordRow.innerHTML = '';
+    if (c.borders?.length) {
+        bordSec.style.display = 'block';
+        c.borders.forEach(code => {
+            const nb = allData.find(n => n.cca3 === code);
+            if (nb) {
+                const chip = document.createElement('span'); chip.className = 'chip chip-lime';
+                chip.textContent = nb.name.common;
+                chip.onclick = () => this.open(nb, allData);
+                bordRow.appendChild(chip);
+            }
+        });
+    } else { bordSec.style.display = 'none'; }
+
+    this.overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  close() { this.overlay.classList.remove('open'); document.body.style.overflow = ''; }
+}
+
+class App {
+  constructor() {
+    this.filter = new FilterManager();
+    this.modal = new CountryModal();
+    this.allData = [];
+    this.init();
+  }
+  async init() {
+    try {
+      this.allData = await CountryAPI.fetchAll();
+      this.updateStats();
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('grid').style.display = 'grid';
+      document.getElementById('resultsRow').style.display = 'flex';
+      this.render();
+      this.bind();
+    } catch (e) {
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('err-state').style.display = 'block';
+      document.getElementById('errMsg').textContent = e.message;
+    }
+  }
+  updateStats() {
+    document.getElementById('sTotal').textContent = this.allData.length;
+    document.getElementById('heroGhost').textContent = this.allData.length;
+    const pop = this.allData.reduce((acc, c) => acc + (c.population || 0), 0);
+    document.getElementById('sPop').textContent = CountryFormatter.abbr(pop);
+    const regs = new Set(this.allData.map(c => c.region)).size;
+    document.getElementById('sRegions').textContent = regs;
+  }
+  bind() {
+    document.getElementById('searchInput').oninput = (e) => { this.filter.query = e.target.value.toLowerCase(); this.render(); };
+    document.getElementById('regionSel').onchange = (e) => { this.filter.region = e.target.value; this.render(); };
+    document.getElementById('sortSel').onchange = (e) => { this.filter.sort = e.target.value; this.render(); };
+  }
+  render() {
+    const filtered = this.filter.apply(this.allData);
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    document.getElementById('rCount').textContent = filtered.length;
+    document.getElementById('rTotal').textContent = this.allData.length;
+    filtered.forEach((c, i) => {
+      const card = new CountryCard(c, (item) => this.modal.open(item, this.allData));
+      grid.appendChild(card.build(i));
+    });
+  }
+}
+
+new App();
+</script>
+</body>
+</html>
